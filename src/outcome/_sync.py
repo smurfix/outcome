@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 import abc
 import attr
+import inspect
 
 from ._util import ABC, AlreadyUsedError
 
@@ -38,10 +39,13 @@ class Outcome(ABC):
 
     """
     _unwrapped = attr.ib(default=False, cmp=False, init=False)
+    _stack = attr.ib(default=[], cmp=False, init=False)
 
     def _set_unwrapped(self):
         if self._unwrapped:
+            import pdb;pdb.set_trace()
             raise AlreadyUsedError
+        self._stack.append(inspect.stack())
         object.__setattr__(self, '_unwrapped', True)
 
 
