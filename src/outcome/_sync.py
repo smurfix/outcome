@@ -2,9 +2,10 @@
 from __future__ import absolute_import, division, print_function
 
 import abc
+
 import attr
 
-from ._util import ABC, AlreadyUsedError
+from ._util import ABC, AlreadyUsedError, remove_tb_frames
 
 __all__ = ['Error', 'Outcome', 'Value', 'capture']
 
@@ -19,6 +20,7 @@ def capture(sync_fn, *args, **kwargs):
     try:
         return Value(sync_fn(*args, **kwargs))
     except BaseException as exc:
+        exc = remove_tb_frames(exc, 1)
         return Error(exc)
 
 
@@ -38,7 +40,7 @@ class Outcome(ABC):
     hashable.
 
     """
-    _unwrapped = attr.ib(default=False, cmp=False, init=False)
+    _unwrapped = attr.ib(default=False, eq=False, init=False)
 
     def _set_unwrapped(self):
         if self._unwrapped:
@@ -52,7 +54,7 @@ class Outcome(ABC):
         These two lines of code are equivalent::
 
            x = fn(*args)
-           x = Result.capture(fn, *args).unwrap()
+           x = outcome.capture(fn, *args).unwrap()
 
         """
 
@@ -103,7 +105,10 @@ class Error(Outcome):
 
     def unwrap(self):
         self._set_unwrapped()
-        raise self.error
+        # Tracebacks show the 'raise' line below out of context, so let's give
+        # this variable a name that makes sense out of context.
+        captured_error = self.error
+        raise captured_error
 
     def send(self, it):
         self._set_unwrapped()

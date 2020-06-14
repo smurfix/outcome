@@ -2,12 +2,11 @@
 from __future__ import absolute_import, division, print_function
 
 import abc
-
 import sys
 
 
 class AlreadyUsedError(RuntimeError):
-    """An Outcome may not be unwrapped twice."""
+    """An Outcome can only be unwrapped once."""
     pass
 
 
@@ -23,6 +22,15 @@ def fixup_module_metadata(module_name, namespace):
     for objname in namespace["__all__"]:
         obj = namespace[objname]
         fix_one(obj)
+
+
+def remove_tb_frames(exc, n):
+    if sys.version_info < (3,):
+        return exc
+    tb = exc.__traceback__
+    for _ in range(n):
+        tb = tb.tb_next
+    return exc.with_traceback(tb)
 
 
 if sys.version_info < (3,):

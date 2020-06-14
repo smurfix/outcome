@@ -1,25 +1,26 @@
+import asyncio
 import sys
+import traceback
 
 import pytest
-import trio
 from async_generator import async_generator, yield_
 
 import outcome
-from outcome import Error, Value, AlreadyUsedError
+from outcome import AlreadyUsedError, Error, Value
 
-pytestmark = pytest.mark.trio
+pytestmark = pytest.mark.asyncio
 
 
 async def test_acapture():
     async def add(x, y):
-        await trio.hazmat.checkpoint()
+        await asyncio.sleep(0)
         return x + y
 
     v = await outcome.acapture(add, 3, y=4)
     assert v == Value(7)
 
     async def raise_ValueError(x):
-        await trio.hazmat.checkpoint()
+        await asyncio.sleep(0)
         raise ValueError(x)
 
     e = await outcome.acapture(raise_ValueError, 9)
@@ -50,3 +51,15 @@ async def test_asend():
         await e.asend(my_agen)
     with pytest.raises(StopAsyncIteration):
         await my_agen.asend(None)
+
+
+async def test_traceback_frame_removal():
+    async def raise_ValueError(x):
+        raise ValueError(x)
+
+    e = await outcome.acapture(raise_ValueError, 'abc')
+    with pytest.raises(ValueError) as exc_info:
+        e.unwrap()
+    frames = traceback.extract_tb(exc_info.value.__traceback__)
+    functions = [function for _, _, function, _ in frames]
+    assert functions[-2:] == ['unwrap', 'raise_ValueError']

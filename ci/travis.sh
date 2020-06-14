@@ -39,22 +39,13 @@ if [ "$USE_PYPY_NIGHTLY" = "1" ]; then
     source testenv/bin/activate
 fi
 
-if [ "$USE_PYPY_RELEASE_VERSION" != "" ]; then
-    curl -fLo pypy.tar.bz2 https://bitbucket.org/squeaky/portable-pypy/downloads/pypy3.5-${USE_PYPY_RELEASE_VERSION}-linux_x86_64-portable.tar.bz2
-    tar xaf pypy.tar.bz2
-    # something like "pypy3.5-5.7.1-beta-linux_x86_64-portable"
-    PYPY_DIR=$(echo pypy3.5-*)
-    PYTHON_EXE=$PYPY_DIR/bin/pypy3
-    $PYTHON_EXE -m ensurepip
-    $PYTHON_EXE -m pip install virtualenv
-    $PYTHON_EXE -m virtualenv testenv
-    source testenv/bin/activate
-fi
-
 pip install -U pip setuptools wheel
 
+python setup.py sdist --formats=zip
+pip install dist/*.zip
+
 if [ "$CHECK_FORMATTING" = "1" ]; then
-    pip install yapf==${YAPF_VERSION}
+    pip install yapf==${YAPF_VERSION} isort
     if ! yapf -rpd setup.py src tests; then
         cat <<EOF
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -72,11 +63,29 @@ in your local checkout.
 EOF
         exit 1
     fi
+
+    # required for isort to order test imports correctly
+    pip install -Ur test-requirements.txt
+
+    if ! isort --recursive --check-only --diff . ; then
+        cat <<EOF
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Formatting problems were found (listed above). To fix them, run
+
+   pip install isort
+   isort --recursive .
+
+in your local checkout.
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+EOF
+        exit 1
+    fi
     exit 0
 fi
-
-python setup.py sdist --formats=zip
-pip install dist/*.zip
 
 if [ "$CHECK_DOCS" = "1" ]; then
     pip install -Ur ci/rtd-requirements.txt

@@ -1,11 +1,13 @@
 # coding: utf-8
 from __future__ import absolute_import, division, print_function
+
 import sys
+import traceback
 
 import pytest
 
 import outcome
-from outcome import Error, Value, AlreadyUsedError
+from outcome import AlreadyUsedError, Error, Value
 
 
 def test_Outcome():
@@ -103,3 +105,21 @@ def test_capture():
     assert type(e) == Error
     assert type(e.error) is ValueError
     assert e.error.args == ("two",)
+
+
+def test_inheritance():
+    assert issubclass(Value, outcome.Outcome)
+    assert issubclass(Error, outcome.Outcome)
+
+
+@pytest.mark.skipif(sys.version_info < (3,), reason="requires python 3")
+def test_traceback_frame_removal():
+    def raise_ValueError(x):
+        raise ValueError(x)
+
+    e = outcome.capture(raise_ValueError, 'abc')
+    with pytest.raises(ValueError) as exc_info:
+        e.unwrap()
+    frames = traceback.extract_tb(exc_info.value.__traceback__)
+    functions = [function for _, _, function, _ in frames]
+    assert functions[-2:] == ['unwrap', 'raise_ValueError']

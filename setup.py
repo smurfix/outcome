@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 from io import open
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 version = dict()
 
@@ -32,11 +32,11 @@ setup(
     license='MIT -or- Apache License 2.0',
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    install_requires=['attrs'],
+    install_requires=['attrs>=19.2.0'],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     keywords='result',
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Framework :: Trio',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
